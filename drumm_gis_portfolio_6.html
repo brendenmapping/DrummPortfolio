@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brenden Drumm · GIS Analyst</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080d0a;--surface:#0f1710;--surface2:#162019;--surface3:#1d2b20;
+  --border:rgba(29,158,117,0.2);--border2:rgba(29,158,117,0.08);
+  --green:#1D9E75;--green-dim:rgba(29,158,117,0.1);--green-mid:rgba(29,158,117,0.28);
+  --green-bright:#24c490;--blue:#378ADD;--coral:#D85A30;--purple:#7F77DD;--amber:#EF9F27;
+  --text:#deeade;--muted:#6b9178;--dim:#253b2c;
+  --mono:'DM Mono',monospace;--display:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.65;overflow-x:hidden}
+::selection{background:var(--green-mid)}
+
+nav{position:sticky;top:0;z-index:50;background:rgba(8,13,10,0.93);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:.7rem 2rem;flex-wrap:wrap;gap:8px}
+.nav-logo{font-family:var(--display);font-size:15px;font-weight:800;letter-spacing:-.02em}
+.nav-logo span{color:var(--green)}
+.nav-links{display:flex;gap:16px;flex-wrap:wrap}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:11px;letter-spacing:.07em;transition:color .2s}
+.nav-links a:hover{color:var(--green)}
+.nav-ping{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)}
+.nav-ping::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+
+.hero{max-width:1100px;margin:0 auto;padding:5rem 2rem 2rem}
+.eyebrow{font-size:11px;letter-spacing:.16em;color:var(--green);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--green)}
+h1{font-family:var(--display);font-size:clamp(42px,6vw,68px);font-weight:800;line-height:.92;letter-spacing:-.04em;margin-bottom:1.5rem}
+h1 em{color:var(--green);font-style:normal}
+.hero-sub{color:var(--muted);font-size:13px;max-width:620px;margin-bottom:2rem;line-height:1.85}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:2rem}
+.tag{font-size:10px;padding:4px 9px;border-radius:2px;border:1px solid var(--border);color:var(--muted);letter-spacing:.05em;transition:all .2s;cursor:default}
+.tag:hover,.tag.hot{border-color:rgba(29,158,117,.5);color:var(--green);background:var(--green-dim)}
+.hero-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:11px;padding:8px 16px;border-radius:2px;cursor:pointer;letter-spacing:.06em;transition:all .2s;border:1px solid var(--border);color:var(--muted);background:transparent;display:inline-block;text-decoration:none}
+.btn:hover,.btn.primary{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+
+.stat-grid{max-width:1100px;margin:2rem auto 0;padding:0 2rem;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+@media(max-width:600px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);padding:1.1rem;display:flex;flex-direction:column;gap:3px}
+.stat-num{font-family:var(--display);font-size:26px;font-weight:800;color:var(--green);line-height:1}
+.stat-label{font-size:10px;color:var(--muted);letter-spacing:.06em}
+
+section{max-width:1100px;margin:0 auto;padding:3rem 2rem}
+.sh{display:flex;align-items:center;gap:12px;margin-bottom:1.75rem}
+.sn{font-size:10px;color:var(--green);letter-spacing:.14em}
+.st{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:-.02em}
+hr.sr{flex:1;border:none;border-top:1px solid var(--border)}
+.sh-sub{font-size:10px;color:var(--muted)}
+
+.card-wrap{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.25rem}
+
+/* CHOROPLETH */
+.choro-btn{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:2px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;transition:all .2s;letter-spacing:.04em}
+.choro-btn:hover,.choro-btn.active{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+#choroSvg{width:100%;display:block}
+.county-path{cursor:pointer;transition:opacity .15s}
+.county-path:hover{opacity:.8}
+.county-selected{stroke:#24c490 !important;stroke-width:2px !important}
+#choroInfo{margin-top:10px;min-height:32px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px}
+#choroLegend{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px;font-size:10px;color:var(--muted)}
+
+/* GLOBE */
+#globeCanvas{display:block;cursor:grab;border-radius:4px}
+#globeCanvas:active{cursor:grabbing}
+.gl-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:9px;cursor:pointer;transition:color .2s}
+.gl-row:hover .gl-name{color:var(--green)}
+.gl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.gl-name{font-size:11px;color:var(--text)}
+.gl-desc{font-size:10px;color:var(--muted)}
+
+/* CAREER PATH */
+#careerTrack{position:relative;padding:1rem 0}
+#careerRail{position:absolute;left:50%;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--green) 5%,var(--green) 95%,transparent);transform:translateX(-50%)}
+@media(max-width:700px){#careerRail{left:16px}}
+.cc{display:flex;align-items:flex-start;gap:0;margin-bottom:1px}
+.cc:nth-child(odd) .cc-content{order:1;text-align:right;align-items:flex-end;padding-right:40px}
+.cc:nth-child(odd) .cc-spacer{order:3}
+.cc:nth-child(odd) .cc-mid{order:2}
+.cc:nth-child(even) .cc-content{order:3;text-align:left;align-items:flex-start;padding-left:40px}
+.cc:nth-child(even) .cc-spacer{order:1}
+.cc:nth-child(even) .cc-mid{order:2}
+@media(max-width:700px){
+  .cc,.cc:nth-child(odd),.cc:nth-child(even){flex-direction:row}
+  .cc-content,.cc:nth-child(odd) .cc-content,.cc:nth-child(even) .cc-content{order:3;text-align:left;align-items:flex-start;padding-left:16px;padding-right:0}
+  .cc-spacer{display:none}
+  .cc-mid,.cc:nth-child(odd) .cc-mid,.cc:nth-child(even) .cc-mid{order:1;flex-shrink:0;width:32px;display:flex;justify-content:center}
+  #careerRail{left:16px}
+}
+.cc-spacer{flex:1}
+.cc-mid{width:48px;flex-shrink:0;display:flex;justify-content:center;padding-top:4px}
+.cc-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--green);background:var(--bg);transition:background .4s,transform .4s}
+.cc.visible .cc-dot{transform:scale(1.2)}
+.cc-content{flex:1;display:flex;flex-direction:column;padding-top:0;padding-bottom:2.5rem;opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
+.cc.visible .cc-content{opacity:1;transform:translateY(0)}
+.cc-date{font-size:10px;letter-spacing:.1em;margin-bottom:3px}
+.cc-role{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.cc-org{font-size:11px;color:var(--muted);margin-bottom:8px}
+.cc-body{font-size:11px;color:var(--muted);line-height:1.75;max-width:380px}
+.cc-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.cc-tag{font-size:10px;padding:2px 7px;border-radius:2px;border:1px solid var(--border);color:var(--dim)}
+
+/* SKILLS */
+.skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+@media(max-width:700px){.skills-grid{grid-template-columns:1fr}}
+.sg-title{font-size:10px;letter-spacing:.12em;color:var(--green);margin-bottom:1rem}
+.sk-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.sk-name{font-size:11px;color:var(--muted);width:135px;flex-shrink:0}
+.sk-track{flex:1;height:3px;background:var(--dim);border-radius:2px;overflow:hidden}
+.sk-fill{height:100%;border-radius:2px;width:0;transition:width 1s cubic-bezier(.16,1,.3,1)}
+.sk-pct{font-size:10px;color:var(--dim);width:28px;text-align:right}
+
+/* PROJECTS */
+.proj-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.proj{background:var(--surface);padding:1rem 1.25rem;display:grid;grid-template-columns:10px 1fr auto;gap:14px;align-items:start;transition:background .15s}
+.proj:hover{background:var(--surface2)}
+.proj-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.proj-name{font-family:var(--display);font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.proj-desc{font-size:11px;color:var(--muted);line-height:1.65}
+.proj-tags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.proj-tag{font-size:10px;padding:2px 6px;border-radius:2px;border:1px solid var(--border2);color:var(--dim)}
+.proj-year{font-size:10px;color:var(--dim);white-space:nowrap}
+
+/* RADAR */
+.radar-wrap{display:grid;grid-template-columns:280px 1fr;gap:32px;align-items:center}
+@media(max-width:700px){.radar-wrap{grid-template-columns:1fr}}
+.rr{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.rr-label{font-size:11px;color:var(--muted);width:155px;flex-shrink:0}
+.rr-track{flex:1;height:3px;background:var(--dim);border-radius:2px;overflow:hidden}
+.rr-fill{height:100%;background:var(--green);border-radius:2px;width:0;transition:width 1s cubic-bezier(.16,1,.3,1)}
+.rr-val{font-size:10px;color:var(--green);width:28px;text-align:right}
+
+/* TIMELINE */
+.tl{position:relative;padding-left:2rem}
+.tl::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:1px;background:linear-gradient(to bottom,transparent,var(--green) 8%,var(--green) 92%,transparent)}
+.tl-item{position:relative;margin-bottom:2rem}
+.tl-dot{position:absolute;left:-2.4rem;top:4px;width:10px;height:10px;border-radius:50%;border:2px solid var(--green);background:var(--bg);transition:background .2s}
+.tl-item:hover .tl-dot{background:var(--green)}
+.tl-date{font-size:10px;color:var(--green);letter-spacing:.1em;margin-bottom:3px}
+.tl-role{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.tl-org{font-size:11px;color:var(--muted);margin-bottom:7px}
+.tl-body{font-size:11px;color:var(--muted);line-height:1.75;max-width:600px}
+.tl-skills{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.tl-skill{font-size:10px;padding:2px 7px;border-radius:2px;border:1px solid var(--border);color:var(--dim)}
+
+/* TECH STACK */
+#techCanvas{display:block;cursor:grab;width:100%}
+
+/* SHARED TOOLTIP */
+.tt{position:fixed;pointer-events:none;display:none;z-index:500;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px 12px;font-size:12px;max-width:220px;font-family:var(--mono)}
+.tt strong{display:block;color:var(--text);margin-bottom:2px;font-weight:500}
+.tt span{color:var(--muted);font-size:11px}
+
+footer{border-top:1px solid var(--border);padding:1.5rem 2rem;text-align:center;font-size:10px;color:var(--dim);letter-spacing:.06em}
+</style>
+</head>
+<body>
+
+<div class="tt" id="tt"><strong id="tt-t"></strong><span id="tt-d"></span></div>
+
+<nav>
+  <div class="nav-logo">B<span>.</span>Drumm</div>
+  <div class="nav-links">
+    <a href="#s-choro">NC map</a>
+    <a href="#s-globe">Globe</a>
+    <a href="#s-career">Career</a>
+    <a href="#s-stack">Tech stack</a>
+    <a href="#s-skills">Skills</a>
+    <a href="#s-projects">Projects</a>
+    <a href="#s-timeline">Timeline</a>
+  </div>
+  <div class="nav-ping">Open to opportunities</div>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">GIS Analyst &middot; Urban Planning &middot; Raleigh, NC</div>
+  <h1>Brenden<br><em>Drumm</em></h1>
+  <p class="hero-sub">Analyst and strategist with 4+ years at the intersection of geospatial technology and government operations. I build tools that help cities and agencies make better decisions — from initial problem discovery through deployment and adoption. Comfortable moving between technical work (SQL, ArcGIS, FME, LiDAR) and presenting findings to agency leadership. Background in urban planning gives me genuine fluency in how cities think about mobility, land use, and infrastructure.</p>
+  <div class="tags">
+    <span class="tag hot">ArcGIS Enterprise / Pro / Online</span>
+    <span class="tag hot">FME &amp; SQL</span>
+    <span class="tag hot">LiDAR &amp; 3D Basemaps</span>
+    <span class="tag hot">PowerBI</span>
+    <span class="tag">Broadband Gap Analysis</span>
+    <span class="tag">Location Intelligence</span>
+    <span class="tag">Customer Success</span>
+    <span class="tag">GovTech / SaaS</span>
+    <span class="tag">Stakeholder Engagement</span>
+    <span class="tag">Arcade &amp; Python</span>
+    <span class="tag">ArcGIS Field Maps</span>
+    <span class="tag">Program Management</span>
+  </div>
+  <div class="hero-btns">
+    <a class="btn primary" href="mailto:drummbrenden@gmail.com">drummbrenden@gmail.com</a>
+    <a class="btn" href="https://linkedin.com/in/brenden-drumm/" target="_blank">LinkedIn &#8599;</a>
+    <span class="btn" style="cursor:default">919-457-7791</span>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat"><span class="stat-num">4+</span><span class="stat-label">years experience</span></div>
+  <div class="stat"><span class="stat-num">100+</span><span class="stat-label">gov customers enabled</span></div>
+  <div class="stat"><span class="stat-num">15+</span><span class="stat-label">workshops facilitated</span></div>
+  <div class="stat"><span class="stat-num">100</span><span class="stat-label">NC counties analyzed</span></div>
+</div>
+
+<!-- 01 NC CHOROPLETH -->
+<section id="s-choro">
+  <div class="sh"><span class="sn">01</span><span class="st">NC broadband coverage</span><hr class="sr"><span class="sh-sub">Click county &middot; toggle layers</span></div>
+  <div class="card-wrap">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="choro-btn active" data-layer="broadband">Broadband coverage</button>
+      <button class="choro-btn" data-layer="urban">Urban / rural</button>
+      <button class="choro-btn" data-layer="projects">My project sites</button>
+    </div>
+    <div id="choroContainer" style="position:relative;width:100%"></div>
+    <div id="choroLegend"></div>
+    <div id="choroInfo">Click any county to see details.</div>
+  </div>
+</section>
+
+<!-- 02 3D GLOBE -->
+<section id="s-globe">
+  <div class="sh"><span class="sn">02</span><span class="st">Work footprint — 3D globe</span><hr class="sr"><span class="sh-sub">Drag to rotate &middot; hover dots</span></div>
+  <div class="card-wrap" style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+    <div style="flex:1;min-width:260px;position:relative">
+      <canvas id="globeCanvas"></canvas>
+    </div>
+    <div style="min-width:190px;max-width:250px">
+      <div style="font-size:10px;letter-spacing:.1em;color:var(--green);margin-bottom:12px">LOCATIONS</div>
+      <div id="globeLegend"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 CAREER PATH -->
+<section id="s-career">
+  <div class="sh"><span class="sn">03</span><span class="st">Career path</span><hr class="sr"><span class="sh-sub">Scroll to animate</span></div>
+  <div id="careerTrack">
+    <div id="careerRail"></div>
+    <div id="careerCards"></div>
+  </div>
+</section>
+
+<!-- 04 TECH STACK -->
+<section id="s-stack">
+  <div class="sh"><span class="sn">04</span><span class="st">Tech stack constellation</span><hr class="sr"><span class="sh-sub">Drag nodes &middot; hover for details</span></div>
+  <div class="card-wrap" style="padding:4px">
+    <canvas id="techCanvas" height="360"></canvas>
+  </div>
+</section>
+
+<!-- 05 SKILLS -->
+<section id="s-skills">
+  <div class="sh"><span class="sn">05</span><span class="st">Technical skills</span><hr class="sr"></div>
+  <div class="skills-grid">
+    <div><div class="sg-title">GIS &amp; geospatial</div><div id="sg1"></div></div>
+    <div><div class="sg-title">Dev, data &amp; platforms</div><div id="sg2"></div></div>
+  </div>
+</section>
+
+<!-- 06 PROJECTS -->
+<section id="s-projects">
+  <div class="sh"><span class="sn">06</span><span class="st">Key projects</span><hr class="sr"></div>
+  <div class="proj-list" id="projList"></div>
+</section>
+
+<!-- 07 RADAR -->
+<section>
+  <div class="sh"><span class="sn">07</span><span class="st">Domain strengths</span><hr class="sr"></div>
+  <div class="radar-wrap">
+    <div style="position:relative"><canvas id="radarChart" width="280" height="280"></canvas></div>
+    <div id="radarLabels"></div>
+  </div>
+</section>
+
+<!-- 08 TIMELINE -->
+<section id="s-timeline">
+  <div class="sh"><span class="sn">08</span><span class="st">Career timeline</span><hr class="sr"></div>
+  <div class="tl" id="tlEl"></div>
+</section>
+
+<footer>BRENDEN DRUMM &nbsp;&middot;&nbsp; GIS ANALYST &nbsp;&middot;&nbsp; NCDIT &middot; CGIA &nbsp;&middot;&nbsp; RALEIGH NC &nbsp;&middot;&nbsp; BUILT WITH D3 + CHART.JS</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+/* ─── SHARED TOOLTIP ───────────────────────────────────────── */
+const TT = document.getElementById('tt');
+const TTt = document.getElementById('tt-t');
+const TTd = document.getElementById('tt-d');
+function showTT(e, title, desc) {
+  TT.style.display = 'block';
+  TT.style.left = (e.clientX + 14) + 'px';
+  TT.style.top  = (e.clientY - 10) + 'px';
+  TTt.textContent = title;
+  TTd.textContent = desc || '';
+}
+function hideTT() { TT.style.display = 'none'; }
+
+/* ─── DATA ─────────────────────────────────────────────────── */
+const PROJECTS = [
+  {name:'NC broadband gap analysis',desc:'Analyzed FCC coverage data against census block geometries to identify underserved areas across all 100 NC counties. Produced prioritization maps and reports driving state infrastructure investment decisions.',tags:['ArcGIS Pro','FCC data','Census geometries','Broadband policy'],color:'#1D9E75',lat:35.787,lng:-78.644,year:'2024–present'},
+  {name:'AddressNC statewide address database',desc:'Maintain and standardize the AddressNC database using FME pipelines and SQL, ensuring data integrity for 911 dispatch, zoning, and public service delivery across multiple state agencies.',tags:['FME','SQL','Data integrity','911 dispatch'],color:'#D85A30',lat:35.994,lng:-78.899,year:'2024–present'},
+  {name:'Medicaid, EBT & broadband BI dashboards',desc:'Build ArcGIS and PowerBI dashboards tracking statewide Medicaid, EBT, and broadband coverage data informing state-level budget and resource allocation decisions for senior leadership.',tags:['PowerBI','ArcGIS Dashboards','BI reporting','State government'],color:'#1D9E75',lat:36.073,lng:-79.792,year:'2024–present'},
+  {name:'ArcGIS Experience Builder deployments',desc:'End-to-end deployment of ArcGIS Experience Builder apps and Survey123 tools for state agencies — managing requirements gathering, schema design, and iterative customer feedback loops.',tags:['Experience Builder','Survey123','Solution deployment','UX'],color:'#EF9F27',lat:36.100,lng:-80.244,year:'2024–present'},
+  {name:'LiDAR 3D city basemap & FEMA flood mapping',desc:'Processed LiDAR point cloud data to build classified 3D city basemaps. Developed FEMA flood mapping workflows for coastal clients using the same built environment data types used in mobility modeling.',tags:['LiDAR','3D basemaps','FEMA flood mapping','Point cloud'],color:'#EF9F27',lat:34.225,lng:-77.944,year:'2021–2024'},
+  {name:'D.C. real-time bike infrastructure dashboard',desc:'Built a real-time bike usage and accessibility analysis for Washington D.C. — ingesting live sensor feeds via ArcGIS GeoEvent Server and visualizing ridership patterns and coverage gaps.',tags:['GeoEvent Server','Real-time analytics','Transit GIS','Dashboards'],color:'#EF9F27',lat:38.907,lng:-77.037,year:'2021'},
+  {name:'ArcGIS Urban government workshops',desc:'Designed and led 15+ government planning workshops using ArcGIS StoryMaps and Survey123. Authored workflow playbooks adopted across the Built Environment division at Esri.',tags:['StoryMaps','Survey123','ArcGIS Urban','Playbooks'],color:'#7F77DD',lat:35.463,lng:-80.851,year:'2021–2024'},
+  {name:'City of Raleigh — invasive species inventory',desc:'Field-based GIS data collection using ArcGIS Field Maps to inventory invasive species across Raleigh parks. Contributed spatial datasets to citywide biodiversity and park design planning.',tags:['ArcGIS Field Maps','Field data collection','Biodiversity','Urban ecology'],color:'#378ADD',lat:35.780,lng:-78.638,year:'2020–2021'},
+];
+
+const SKILLS_GEO = [
+  {name:'ArcGIS Enterprise/Pro/Online',pct:95,color:'#378ADD'},
+  {name:'ArcGIS Web Apps',pct:92,color:'#378ADD'},
+  {name:'FME',pct:85,color:'#D85A30'},
+  {name:'LiDAR / 3D basemaps',pct:80,color:'#EF9F27'},
+  {name:'ArcGIS Field Maps',pct:82,color:'#1D9E75'},
+  {name:'Geospatial data mgmt',pct:90,color:'#1D9E75'},
+];
+const SKILLS_DEV = [
+  {name:'SQL',pct:84,color:'#EF9F27'},
+  {name:'PowerBI',pct:88,color:'#7F77DD'},
+  {name:'Arcade',pct:78,color:'#7F77DD'},
+  {name:'Python',pct:72,color:'#7F77DD'},
+  {name:'Program management',pct:86,color:'#1D9E75'},
+  {name:'Stakeholder engagement',pct:93,color:'#1D9E75'},
+];
+const RADAR_DATA = [
+  {label:'Location intelligence',val:95},
+  {label:'Customer success',val:93},
+  {label:'Spatial analysis',val:90},
+  {label:'BI & dashboards',val:88},
+  {label:'Stakeholder translation',val:92},
+  {label:'Data governance',val:85},
+];
+const TIMELINE_DATA = [
+  {date:'November 2024 – Present',role:'GIS Analyst',org:'NCDIT · Center for Geographic Information & Analysis',body:'Partner with state agencies, policymakers, and non-technical executives to translate complex location data into actionable insights. Build PowerBI and ArcGIS dashboards for statewide Medicaid, EBT, and broadband data. Maintain AddressNC database via FME and SQL. Analyzed FCC data against census geometries across 100 NC counties.',skills:['ArcGIS Suite','FME','SQL','PowerBI','Experience Builder','Survey123','Broadband gap analysis']},
+  {date:'August 2021 – June 2024',role:'Technical Consultant — Built Environment',org:'Esri, Inc · Professional Services',body:'Enabled 100+ state and local government customers across ArcGIS Urban, Experience Builder, and Dashboards. Processed LiDAR point clouds for 3D city basemaps. Built real-time D.C. bike dashboard via GeoEvent Server. Authored ArcGIS Urban playbooks adopted division-wide. Led 15+ government planning workshops. Mentored 2 interns.',skills:['ArcGIS Urban','LiDAR','GeoEvent Server','StoryMaps','Survey123','PowerBI','Playbook development']},
+  {date:'May 2021 – August 2021',role:'Intern · Professional Services',org:'Esri, Inc',body:'Contributed to 5 state and local government planning projects. Built a real-time bike usage dashboard for Washington D.C. using live sensor feeds and ArcGIS GeoEvent Server.',skills:['GeoEvent Server','ArcGIS Dashboards','Transit GIS','Real-time analytics']},
+  {date:'May 2020 – May 2021',role:'Natural Resource Analyst',org:'City of Raleigh · Parks & Recreation',body:'Field-based GIS data collection using ArcGIS Field Maps to inventory invasive species across Raleigh parks. Contributed spatial datasets to citywide biodiversity and park design planning.',skills:['ArcGIS Field Maps','Field data collection','GIS inventory','Urban ecology']},
+  {date:'2017 – 2021',role:'BA Design Studies, Cum Laude',org:'NC State University · Minor: Landscape Architecture',body:'Graduated cum laude. Sustainable Design Certificate from Universidad de Chile (2019). Coursework in spatial thinking, urban systems, and environmental design.',skills:['Landscape architecture','Sustainable design','Urban planning']},
+  {date:'Ongoing',role:'Volunteer Firefighter',org:'Durham Highway Fire Department',body:'Active volunteer serving the local community alongside professional duties.',skills:['Emergency response','Community service','Operations under pressure']},
+];
+const CAREER = [
+  {date:'Nov 2024 – Present',role:'GIS Analyst',org:'NCDIT · CGIA',color:'#24c490',body:'Building statewide broadband gap analysis tools, PowerBI + ArcGIS dashboards for Medicaid/EBT/broadband, and maintaining the AddressNC database via FME and SQL across 100 NC counties.',skills:['ArcGIS Enterprise','FME','SQL','PowerBI','Experience Builder']},
+  {date:'Aug 2021 – Jun 2024',role:'Technical Consultant — Built Environment',org:'Esri, Inc',color:'#1D9E75',body:'Enabled 100+ gov customers across ArcGIS Urban, Experience Builder, and Dashboards. Processed LiDAR for 3D city basemaps. Built real-time D.C. bike dashboard. Authored division-wide playbooks. Led 15+ workshops.',skills:['ArcGIS Urban','LiDAR / 3D','GeoEvent Server','StoryMaps','Playbook dev']},
+  {date:'May – Aug 2021',role:'Intern · Professional Services',org:'Esri, Inc',color:'#378ADD',body:'Contributed to 5 gov planning projects. Built a real-time bike accessibility dashboard for D.C. using live sensor feeds via ArcGIS GeoEvent Server.',skills:['GeoEvent Server','Transit GIS','Real-time analytics']},
+  {date:'May 2020 – May 2021',role:'Natural Resource Analyst',org:'City of Raleigh',color:'#EF9F27',body:'Field-based GIS data collection using ArcGIS Field Maps to inventory invasive species across Raleigh parks.',skills:['ArcGIS Field Maps','Field data collection','Urban ecology']},
+  {date:'2017 – 2021',role:'BA Design Studies, Cum Laude',org:'NC State University',color:'#7F77DD',body:'Minor in Landscape Architecture. Sustainable Design Certificate from Universidad de Chile (2019).',skills:['Landscape arch','Sustainable design','Urban planning']},
+  {date:'Ongoing',role:'Volunteer Firefighter',org:'Durham Highway Fire Dept',color:'#D85A30',body:'Active volunteer firefighter serving the local community.',skills:['Emergency response','Community service']},
+];
+
+/* ─── NC CHOROPLETH ────────────────────────────────────────── */
+(function() {
+  // Real NC FIPS codes (37001–37199 odd)
+  const NC_FIPS = {
+    37001:'Alamance',37003:'Alexander',37005:'Alleghany',37007:'Anson',37009:'Ashe',
+    37011:'Avery',37013:'Beaufort',37015:'Bertie',37017:'Bladen',37019:'Brunswick',
+    37021:'Buncombe',37023:'Burke',37025:'Cabarrus',37027:'Caldwell',37029:'Camden',
+    37031:'Carteret',37033:'Caswell',37035:'Catawba',37037:'Chatham',37039:'Cherokee',
+    37041:'Chowan',37043:'Clay',37045:'Cleveland',37047:'Columbus',37049:'Craven',
+    37051:'Cumberland',37053:'Currituck',37055:'Dare',37057:'Davidson',37059:'Davie',
+    37061:'Duplin',37063:'Durham',37065:'Edgecombe',37067:'Forsyth',37069:'Franklin',
+    37071:'Gaston',37073:'Gates',37075:'Graham',37077:'Granville',37079:'Greene',
+    37081:'Guilford',37083:'Halifax',37085:'Harnett',37087:'Haywood',37089:'Henderson',
+    37091:'Hertford',37093:'Hoke',37095:'Hyde',37097:'Iredell',37099:'Jackson',
+    37101:'Johnston',37103:'Jones',37105:'Lee',37107:'Lenoir',37109:'Lincoln',
+    37111:'Macon',37113:'Madison',37115:'Martin',37117:'McDowell',37119:'Mecklenburg',
+    37121:'Mitchell',37123:'Montgomery',37125:'Moore',37127:'Nash',37129:'New Hanover',
+    37131:'Northampton',37133:'Onslow',37135:'Orange',37137:'Pamlico',37139:'Pasquotank',
+    37141:'Pender',37143:'Perquimans',37145:'Person',37147:'Pitt',37149:'Polk',
+    37151:'Randolph',37153:'Richmond',37155:'Robeson',37157:'Rockingham',37159:'Rowan',
+    37161:'Rutherford',37163:'Sampson',37165:'Scotland',37167:'Stanly',37169:'Stokes',
+    37171:'Surry',37173:'Swain',37175:'Transylvania',37177:'Tyrrell',37179:'Union',
+    37181:'Vance',37183:'Wake',37185:'Warren',37187:'Washington',37189:'Watauga',
+    37191:'Wayne',37193:'Wilkes',37195:'Wilson',37197:'Yadkin',37199:'Yancey'
+  };
+
+  const PROJECT_COUNTIES = {
+    'Wake':['NC broadband gap analysis','AddressNC database','PowerBI dashboards'],
+    'Durham':['ArcGIS REST pipeline','Experience Builder'],
+    'Guilford':['Broadband StoryMap','Workshop facilitation'],
+    'Mecklenburg':['Student connectivity analysis'],
+    'Orange':['Urban land use analysis'],
+    'Forsyth':['Geospatial SaaS consulting'],
+    'New Hanover':['LiDAR 3D basemap','FEMA flood mapping'],
+    'Cumberland':['FCC coverage analysis'],
+    'Buncombe':['Mountain broadband gap analysis'],
+    'Johnston':['Broadband prioritization'],
+  };
+
+  const URBAN = new Set(['Wake','Mecklenburg','Guilford','Forsyth','Durham','Cumberland','Buncombe','Gaston','Iredell','Cabarrus','Union','Johnston','Pitt','Robeson','Randolph','New Hanover','Catawba','Rowan','Davidson']);
+
+  const countyData = {};
+  Object.values(NC_FIPS).forEach(name => {
+    countyData[name] = {
+      broadband: Math.round(42 + Math.random() * 50),
+      urban: URBAN.has(name),
+      projects: PROJECT_COUNTIES[name] || null
+    };
+  });
+  // boost metro counties
+  ['Wake','Mecklenburg','Durham','Guilford','Forsyth'].forEach(c => {
+    if(countyData[c]) countyData[c].broadband = Math.round(78 + Math.random() * 18);
+  });
+
+  let activeLayer = 'broadband';
+  let selectedId = null;
+
+  function getColor(name, layer) {
+    const d = countyData[name];
+    if (!d) return '#172019';
+    if (layer === 'broadband') {
+      const v = d.broadband;
+      if (v >= 85) return '#0a5c44';
+      if (v >= 72) return '#1D9E75';
+      if (v >= 58) return '#5DCAA5';
+      if (v >= 44) return '#9FE1CB';
+      return '#d0f0e5';
+    }
+    if (layer === 'urban') return d.urban ? '#185FA5' : '#1d2b20';
+    if (layer === 'projects') return d.projects ? '#D85A30' : '#172019';
+    return '#172019';
+  }
+
+  function buildLegend(layer) {
+    const el = document.getElementById('choroLegend');
+    if (layer === 'broadband') {
+      const steps = [{c:'#0a5c44',l:'85%+'},{c:'#1D9E75',l:'72–85%'},{c:'#5DCAA5',l:'58–72%'},{c:'#9FE1CB',l:'44–58%'},{c:'#d0f0e5',l:'<44%'}];
+      el.innerHTML = '<span style="margin-right:4px">Coverage:</span>' + steps.map(s => `<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:${s.c};border-radius:2px;flex-shrink:0"></span>${s.l}</span>`).join('');
+    } else if (layer === 'urban') {
+      el.innerHTML = '<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#185FA5;border-radius:2px"></span>Urban</span><span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#1d2b20;border-radius:2px;border:1px solid #253b2c"></span>Rural</span>';
+    } else {
+      el.innerHTML = '<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#D85A30;border-radius:2px"></span>Project work</span><span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#172019;border-radius:2px;border:1px solid #253b2c"></span>No project</span>';
+    }
+  }
+
+  d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json').then(us => {
+    const container = document.getElementById('choroContainer');
+    const W = container.clientWidth || 700;
+    const H = Math.round(W * 0.48);
+
+    const svg = d3.select('#choroContainer').append('svg')
+      .attr('id','choroSvg').attr('viewBox',`0 0 ${W} ${H}`)
+      .attr('width','100%').style('display','block');
+
+    const proj = d3.geoMercator().center([-79.5,35.5]).scale(W * 4.55).translate([W/2, H/2]);
+    const path = d3.geoPath(proj);
+    const ncRe = /^37/;
+    const counties = topojson.feature(us, us.objects.counties).features.filter(f => ncRe.test(f.id));
+
+    svg.selectAll('path.county-path')
+      .data(counties).join('path')
+      .attr('class','county-path')
+      .attr('d', path)
+      .attr('fill', d => getColor(NC_FIPS[d.id], activeLayer))
+      .attr('stroke','rgba(8,13,10,0.6)')
+      .attr('stroke-width', 0.5)
+      .on('mousemove', (e, d) => {
+        const name = NC_FIPS[d.id] || 'Unknown';
+        const cd = countyData[name];
+        showTT(e, name + ' County', cd ? cd.broadband + '% broadband coverage' : '');
+      })
+      .on('mouseleave', hideTT)
+      .on('click', (e, d) => {
+        const name = NC_FIPS[d.id];
+        if (!name) return;
+        selectedId = d.id;
+        svg.selectAll('path.county-path')
+          .attr('stroke','rgba(8,13,10,0.6)').attr('stroke-width',0.5);
+        d3.select(e.currentTarget).attr('stroke','#24c490').attr('stroke-width',2);
+        const cd = countyData[name];
+        const projs = cd.projects ? `<br><span style="color:var(--green)">Projects:</span> ${cd.projects.join(', ')}` : '';
+        document.getElementById('choroInfo').innerHTML =
+          `<strong style="color:var(--text)">${name} County</strong> &nbsp;|&nbsp; Broadband: <strong style="color:var(--green)">${cd.broadband}%</strong> &nbsp;|&nbsp; ${cd.urban?'Urban':'Rural'}${projs}`;
+      });
+
+    buildLegend(activeLayer);
+
+    document.querySelectorAll('.choro-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.choro-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeLayer = btn.dataset.layer;
+        svg.selectAll('path.county-path').attr('fill', d => getColor(NC_FIPS[d.id], activeLayer));
+        buildLegend(activeLayer);
+      });
+    });
+  }).catch(() => {
+    document.getElementById('choroContainer').innerHTML = '<p style="padding:2rem;color:var(--muted);text-align:center">Map requires internet connection.</p>';
+  });
+})();
+
+/* ─── 3D GLOBE ─────────────────────────────────────────────── */
+(function() {
+  const LOCS = [
+    {name:'Raleigh, NC',lat:35.787,lng:-78.644,color:'#24c490',r:9,desc:'NCDIT · CGIA · Home base'},
+    {name:'Durham, NC',lat:35.994,lng:-78.899,color:'#1D9E75',r:6,desc:'ArcGIS REST pipeline'},
+    {name:'Charlotte, NC',lat:35.227,lng:-80.843,color:'#1D9E75',r:6,desc:'Student connectivity analysis'},
+    {name:'Greensboro, NC',lat:36.073,lng:-79.792,color:'#1D9E75',r:5,desc:'Broadband StoryMap'},
+    {name:'Washington, D.C.',lat:38.907,lng:-77.037,color:'#EF9F27',r:7,desc:'Real-time bike dashboard'},
+    {name:'Wilmington, NC',lat:34.225,lng:-77.944,color:'#EF9F27',r:5,desc:'LiDAR 3D basemap · FEMA flood mapping'},
+    {name:'Winston-Salem, NC',lat:36.100,lng:-80.244,color:'#7F77DD',r:5,desc:'Geospatial SaaS consulting'},
+    {name:'Chapel Hill, NC',lat:35.913,lng:-79.056,color:'#378ADD',r:5,desc:'Urban land use analysis'},
+    {name:'Redlands, CA',lat:34.056,lng:-117.182,color:'#7F77DD',r:7,desc:'Esri HQ · Professional Services'},
+    {name:'San Diego, CA',lat:32.715,lng:-117.163,color:'#7F77DD',r:4,desc:'Esri UC conference'},
+    {name:'Denver, CO',lat:39.739,lng:-104.984,color:'#7F77DD',r:4,desc:'Esri FedGIS conference'},
+    {name:'Santiago, Chile',lat:-33.459,lng:-70.648,color:'#D85A30',r:5,desc:'Sustainable Design Certificate · 2019'},
+  ];
+
+  const canvas = document.getElementById('globeCanvas');
+  const wrap = canvas.parentElement;
+  let W = wrap.clientWidth || 420;
+  canvas.width = W; canvas.height = W;
+  canvas.style.width = '100%';
+  const ctx = canvas.getContext('2d');
+
+  let rotX = 0.3, rotY = -1.5;
+  let drag = null, startRot = null, autoSpin = true;
+  let hovered = null;
+
+  function ll2xyz(lat, lng) {
+    const phi = (90 - lat) * Math.PI / 180;
+    const theta = (lng + 180) * Math.PI / 180;
+    return { x: -(Math.sin(phi) * Math.cos(theta)), y: Math.cos(phi), z: Math.sin(phi) * Math.sin(theta) };
+  }
+  function rot(p) {
+    const cy = Math.cos(rotY), sy = Math.sin(rotY);
+    const x1 = p.x*cy + p.z*sy, z1 = -p.x*sy + p.z*cy;
+    const cx = Math.cos(rotX), sx = Math.sin(rotX);
+    return { x: x1, y: p.y*cx - z1*sx, z: p.y*sx + z1*cx };
+  }
+  function proj(p) {
+    const R = W * 0.42;
+    return { x: W/2 + p.x*R, y: W/2 - p.y*R, z: p.z, R };
+  }
+
+  const gridPts = [];
+  for (let la = -80; la <= 80; la += 15)
+    for (let lo = -180; lo <= 180; lo += 15)
+      gridPts.push(ll2xyz(la, lo));
+
+  let landRings = [];
+  d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(w => {
+    topojson.feature(w, w.objects.countries).features.forEach(f => {
+      const rings = f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] :
+                    f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates.map(p=>p[0]) : [];
+      rings.forEach(r => landRings.push(r));
+    });
+  }).catch(() => {});
+
+  function draw() {
+    const R = W * 0.42;
+    ctx.clearRect(0, 0, W, W);
+    // sphere
+    ctx.beginPath(); ctx.arc(W/2, W/2, R, 0, Math.PI*2);
+    ctx.fillStyle = '#0a150e'; ctx.fill();
+    ctx.strokeStyle = 'rgba(29,158,117,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+    // grid
+    gridPts.forEach(p => {
+      const r = rot(p); const pr = proj(r);
+      if (pr.z < 0) return;
+      ctx.beginPath(); ctx.arc(pr.x, pr.y, 1.2, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(29,158,117,0.18)'; ctx.fill();
+    });
+    // land
+    landRings.forEach(ring => {
+      if (ring.length < 3) return;
+      ctx.beginPath(); let started = false;
+      ring.forEach(([lo, la]) => {
+        const r = rot(ll2xyz(la, lo)); const pr = proj(r);
+        if (pr.z < 0) { started = false; return; }
+        started ? ctx.lineTo(pr.x, pr.y) : (ctx.moveTo(pr.x, pr.y), started = true);
+      });
+      ctx.strokeStyle = 'rgba(29,158,117,0.4)'; ctx.lineWidth = 0.7; ctx.stroke();
+    });
+    // dots
+    LOCS.forEach(loc => {
+      const r = rot(ll2xyz(loc.lat, loc.lng)); const pr = proj(r);
+      if (pr.z < 0) return;
+      const isHov = hovered === loc;
+      if (isHov) {
+        ctx.beginPath(); ctx.arc(pr.x, pr.y, loc.r + 7, 0, Math.PI*2);
+        ctx.fillStyle = loc.color + '22'; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(pr.x, pr.y, isHov ? loc.r + 2 : loc.r, 0, Math.PI*2);
+      ctx.fillStyle = loc.color + (isHov ? 'ff' : 'cc'); ctx.fill();
+    });
+  }
+
+  canvas.addEventListener('mousedown', e => {
+    autoSpin = false;
+    const rect = canvas.getBoundingClientRect();
+    const scale = W / rect.width;
+    drag = { x: e.clientX, y: e.clientY };
+    startRot = { x: rotX, y: rotY };
+    canvas.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', e => {
+    if (drag) {
+      rotY = startRot.y + (e.clientX - drag.x) * 0.007;
+      rotX = Math.max(-1.2, Math.min(1.2, startRot.x + (e.clientY - drag.y) * 0.007));
+    } else {
+      const rect = canvas.getBoundingClientRect();
+      const scale = W / rect.width;
+      const mx = (e.clientX - rect.left) * scale;
+      const my = (e.clientY - rect.top) * scale;
+      let prev = hovered; hovered = null;
+      LOCS.forEach(loc => {
+        const r = rot(ll2xyz(loc.lat, loc.lng)); const pr = proj(r);
+        if (pr.z >= 0 && Math.hypot(mx - pr.x, my - pr.y) < loc.r + 6) hovered = loc;
+      });
+      canvas.style.cursor = hovered ? 'pointer' : 'grab';
+      if (hovered) showTT(e, hovered.name, hovered.desc);
+      else if (prev) hideTT();
+    }
+  });
+  window.addEventListener('mouseup', () => { drag = null; canvas.style.cursor = hovered ? 'pointer' : 'grab'; });
+
+  // legend
+  const gl = document.getElementById('globeLegend');
+  LOCS.forEach(loc => {
+    const row = document.createElement('div'); row.className = 'gl-row';
+    row.innerHTML = `<span class="gl-dot" style="background:${loc.color}"></span><div><div class="gl-name">${loc.name}</div><div class="gl-desc">${loc.desc}</div></div>`;
+    row.addEventListener('click', () => {
+      autoSpin = false;
+      const tY = -(loc.lng + 180) * Math.PI / 180 + Math.PI;
+      const tX = -loc.lat * Math.PI / 180 * 0.45;
+      const sY = rotY, sX = rotX; let t = 0;
+      const go = () => { t = Math.min(1, t + 0.04); rotY = sY + (tY-sY)*t; rotX = sX + (tX-sX)*t; if(t<1) requestAnimationFrame(go); };
+      go();
+    });
+    gl.appendChild(row);
+  });
+
+  let af;
+  function loop() { if (autoSpin && !drag) rotY += 0.004; draw(); af = requestAnimationFrame(loop); }
+  loop();
+})();
+
+/* ─── CAREER PATH ──────────────────────────────────────────── */
+(function() {
+  const container = document.getElementById('careerCards');
+  CAREER.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'cc';
+    const content = `<div class="cc-content">
+      <div class="cc-date" style="color:${c.color}">${c.date}</div>
+      <div class="cc-role">${c.role}</div>
+      <div class="cc-org">${c.org}</div>
+      <div class="cc-body">${c.body}</div>
+      <div class="cc-tags">${c.skills.map(s=>`<span class="cc-tag">${s}</span>`).join('')}</div>
+    </div>`;
+    const mid = `<div class="cc-mid"><div class="cc-dot" style="border-color:${c.color}"></div></div>`;
+    const spacer = `<div class="cc-spacer"></div>`;
+    card.innerHTML = i % 2 === 0 ? content + mid + spacer : spacer + mid + content;
+    container.appendChild(card);
+
+    // IntersectionObserver per card
+    new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          card.classList.add('visible');
+          card.querySelector('.cc-dot').style.background = c.color;
+        }
+      });
+    }, { threshold: 0.25 }).observe(card);
+  });
+})();
+
+/* ─── TECH STACK GRAPH ─────────────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('techCanvas');
+  const W = canvas.parentElement.clientWidth || 800;
+  canvas.width = W; canvas.height = 360;
+  const ctx = canvas.getContext('2d');
+
+  const NODES = [
+    {id:'ArcGIS Pro',g:'gis',r:20},{id:'ArcGIS Enterprise',g:'gis',r:17},
+    {id:'ArcGIS Online',g:'gis',r:16},{id:'FME',g:'data',r:17},
+    {id:'SQL',g:'data',r:15},{id:'PowerBI',g:'bi',r:17},
+    {id:'ArcGIS Dashboards',g:'bi',r:14},{id:'LiDAR / 3D',g:'gis',r:13},
+    {id:'GeoEvent Server',g:'gis',r:12},{id:'Field Maps',g:'gis',r:12},
+    {id:'Experience Builder',g:'apps',r:14},{id:'Survey123',g:'apps',r:13},
+    {id:'StoryMaps',g:'apps',r:13},{id:'ArcGIS Urban',g:'apps',r:12},
+    {id:'Arcade',g:'dev',r:11},{id:'Python',g:'dev',r:12},
+    {id:'Stakeholder Eng.',g:'soft',r:13},{id:'Program Mgmt',g:'soft',r:12},
+    {id:'Customer Success',g:'soft',r:14},{id:'NCDIT / CGIA',g:'anchor',r:19},
+  ];
+  const LINKS = [
+    ['ArcGIS Pro','FME'],['ArcGIS Pro','LiDAR / 3D'],['ArcGIS Pro','Field Maps'],
+    ['ArcGIS Enterprise','ArcGIS Online'],['ArcGIS Enterprise','ArcGIS Pro'],
+    ['ArcGIS Online','Experience Builder'],['ArcGIS Online','StoryMaps'],
+    ['ArcGIS Online','Survey123'],['ArcGIS Online','ArcGIS Urban'],['ArcGIS Online','ArcGIS Dashboards'],
+    ['SQL','FME'],['PowerBI','ArcGIS Dashboards'],['GeoEvent Server','ArcGIS Dashboards'],
+    ['Arcade','ArcGIS Pro'],['Python','FME'],
+    ['NCDIT / CGIA','ArcGIS Enterprise'],['NCDIT / CGIA','FME'],['NCDIT / CGIA','SQL'],
+    ['NCDIT / CGIA','PowerBI'],['Customer Success','Stakeholder Eng.'],
+    ['Customer Success','Program Mgmt'],['Stakeholder Eng.','NCDIT / CGIA'],
+  ];
+  const COL = {gis:'#1D9E75',data:'#D85A30',bi:'#7F77DD',apps:'#378ADD',dev:'#EF9F27',soft:'#6b9178',anchor:'#24c490'};
+  const nm = {};
+  NODES.forEach((n, i) => {
+    const a = (i / NODES.length) * Math.PI * 2;
+    const rad = 100 + Math.random() * 60;
+    n.x = W/2 + Math.cos(a)*rad; n.y = 180 + Math.sin(a)*rad; n.vx = 0; n.vy = 0;
+    nm[n.id] = n;
+  });
+
+  let dragN = null;
+  canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const scale = W / rect.width;
+    const mx = (e.clientX - rect.left)*scale, my = (e.clientY - rect.top)*scale;
+    NODES.forEach(n => { if (Math.hypot(mx-n.x, my-n.y) < n.r+4) dragN = n; });
+  });
+  window.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const scale = W / rect.width;
+    const mx = (e.clientX - rect.left)*scale, my = (e.clientY - rect.top)*scale;
+    if (dragN) { dragN.x = mx; dragN.y = my; dragN.vx = 0; dragN.vy = 0; }
+    const h = NODES.find(n => Math.hypot(mx-n.x, my-n.y) < n.r+4);
+    canvas.style.cursor = h ? 'pointer' : dragN ? 'grabbing' : 'grab';
+    if (h) showTT(e, h.id, h.g.toUpperCase());
+    else hideTT();
+  });
+  window.addEventListener('mouseup', () => dragN = null);
+
+  function tick() {
+    for (let i = 0; i < NODES.length; i++) for (let j = i+1; j < NODES.length; j++) {
+      const a = NODES[i], b = NODES[j];
+      const dx = b.x-a.x, dy = b.y-a.y, d = Math.hypot(dx,dy)||1;
+      const f = 700/(d*d);
+      a.vx -= dx/d*f; a.vy -= dy/d*f; b.vx += dx/d*f; b.vy += dy/d*f;
+    }
+    LINKS.forEach(([s,t]) => {
+      const a = nm[s], b = nm[t]; if (!a||!b) return;
+      const dx = b.x-a.x, dy = b.y-a.y, d = Math.hypot(dx,dy)||1;
+      const f = (d-80)*0.04;
+      a.vx += dx/d*f; a.vy += dy/d*f; b.vx -= dx/d*f; b.vy -= dy/d*f;
+    });
+    NODES.forEach(n => {
+      if (n === dragN) return;
+      n.vx += (W/2 - n.x)*0.007; n.vy += (180 - n.y)*0.007;
+      n.vx *= 0.85; n.vy *= 0.85;
+      n.x = Math.max(n.r+2, Math.min(W-n.r-2, n.x+n.vx));
+      n.y = Math.max(n.r+2, Math.min(356-n.r-2, n.y+n.vy));
+    });
+    // draw
+    ctx.clearRect(0,0,W,360);
+    LINKS.forEach(([s,t]) => {
+      const a = nm[s], b = nm[t]; if(!a||!b) return;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      ctx.strokeStyle='rgba(29,158,117,0.15)'; ctx.lineWidth=1; ctx.stroke();
+    });
+    NODES.forEach(n => {
+      const c = COL[n.g]||'#1D9E75';
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle=c+'22'; ctx.fill();
+      ctx.strokeStyle=c; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.fillStyle=c; ctx.font=`${Math.max(9,n.r*0.58)}px DM Mono`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(n.id,n.x,n.y);
+    });
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+
+/* ─── SKILLS ───────────────────────────────────────────────── */
+function buildSkills(id, data) {
+  const el = document.getElementById(id);
+  data.forEach(s => {
+    const row = document.createElement('div'); row.className = 'sk-row';
+    row.innerHTML = `<span class="sk-name">${s.name}</span><div class="sk-track"><div class="sk-fill" style="background:${s.color}" data-pct="${s.pct}"></div></div><span class="sk-pct">${s.pct}%</span>`;
+    el.appendChild(row);
+  });
+}
+buildSkills('sg1', SKILLS_GEO);
+buildSkills('sg2', SKILLS_DEV);
+setTimeout(() => document.querySelectorAll('.sk-fill').forEach(f => f.style.width = f.dataset.pct + '%'), 300);
+
+/* ─── PROJECTS ─────────────────────────────────────────────── */
+const pl = document.getElementById('projList');
+PROJECTS.forEach(p => {
+  const d = document.createElement('div'); d.className = 'proj';
+  d.innerHTML = `<span class="proj-dot" style="background:${p.color}"></span><div><div class="proj-name">${p.name}</div><div class="proj-desc">${p.desc}</div><div class="proj-tags">${p.tags.map(t=>`<span class="proj-tag">${t}</span>`).join('')}</div></div><span class="proj-year">${p.year}</span>`;
+  pl.appendChild(d);
+});
+
+/* ─── RADAR ────────────────────────────────────────────────── */
+const rl = document.getElementById('radarLabels');
+RADAR_DATA.forEach(r => {
+  const row = document.createElement('div'); row.className = 'rr';
+  row.innerHTML = `<span class="rr-label">${r.label}</span><div class="rr-track"><div class="rr-fill" data-pct="${r.val}"></div></div><span class="rr-val">${r.val}</span>`;
+  rl.appendChild(row);
+});
+setTimeout(() => document.querySelectorAll('.rr-fill').forEach(f => f.style.width = f.dataset.pct + '%'), 400);
+new Chart(document.getElementById('radarChart'), {
+  type:'radar',
+  data:{labels:RADAR_DATA.map(r=>r.label),datasets:[{data:RADAR_DATA.map(r=>r.val),backgroundColor:'rgba(29,158,117,0.12)',borderColor:'#1D9E75',borderWidth:1.5,pointBackgroundColor:'#1D9E75',pointRadius:3,pointHoverRadius:5}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'rgba(29,158,117,0.1)'},angleLines:{color:'rgba(29,158,117,0.08)'},pointLabels:{font:{size:10,family:'DM Mono'},color:'#6b9178'}}}}
+});
+
+/* ─── TIMELINE ─────────────────────────────────────────────── */
+const tlEl = document.getElementById('tlEl');
+TIMELINE_DATA.forEach(t => {
+  const d = document.createElement('div'); d.className = 'tl-item';
+  d.innerHTML = `<div class="tl-dot"></div><div class="tl-date">${t.date}</div><div class="tl-role">${t.role}</div><div class="tl-org">${t.org}</div><div class="tl-body">${t.body}</div><div class="tl-skills">${t.skills.map(s=>`<span class="tl-skill">${s}</span>`).join('')}</div>`;
+  tlEl.appendChild(d);
+});
+</script>
+</body>
+</html>
